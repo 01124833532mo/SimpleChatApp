@@ -1,0 +1,210 @@
+﻿<!DOCTYPE html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WhatsApp-like Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 400px;
+            height: 90vh;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Chat Header */
+        .chat-header {
+            background-color: #075e54;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* Chat Messages */
+        .chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background-color: #ece5dd;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+            .message.sent {
+                align-items: flex-end;
+            }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #dcf8c6;
+            position: relative;
+        }
+
+        .message.sent .message-bubble {
+            background-color: #075e54;
+            color: #fff;
+        }
+
+        .message-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -10px;
+            width: 0;
+            height: 0;
+            border: 10px solid transparent;
+            border-right-color: #dcf8c6;
+            border-left: 0;
+            border-bottom: 0;
+            margin-bottom: 10px;
+        }
+
+        .message.sent .message-bubble::after {
+            left: auto;
+            right: -10px;
+            border-right-color: #075e54;
+        }
+
+        .message-sender {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        /* Chat Input */
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+        }
+
+            .chat-input input {
+                flex: 1;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 20px;
+                outline: none;
+                margin-right: 10px;
+            }
+
+            .chat-input button {
+                padding: 10px 20px;
+                background-color: #075e54;
+                color: #fff;
+                border: none;
+                border-radius: 20px;
+                cursor: pointer;
+            }
+
+                .chat-input button:hover {
+                    background-color: #128c7e;
+                }
+    </style>
+    <!-- Load SignalR library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            WhatsApp-like Chat
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="chat-messages" id="conversation">
+            <!-- Messages will be dynamically added here -->
+        </div>
+
+        <!-- Chat Input -->
+        <div class="chat-input">
+            <input type="text" id="messageInp" placeholder="Type a message..." />
+            <button id="sendMessageBtn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Prompt user for their name
+            var userName = prompt("Please enter your name:");
+            if (!userName) {
+                alert("You must enter a name to join the chat.");
+                return;
+            }
+
+            // Get DOM elements
+            var messageInput = document.getElementById("messageInp");
+            var sendMessageBtn = document.getElementById("sendMessageBtn");
+
+            // Initialize SignalR connection
+            var connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chathub")
+                .build();
+
+            // Start the connection
+            connection.start()
+                .then(() => {
+                    console.log("Connection started.");
+                })
+                .catch(err => console.error("Connection error: ", err));
+
+            // Send message
+            sendMessageBtn.addEventListener('click', function () {
+                var message = messageInput.value;
+                if (message) {
+                    connection.invoke("Send", userName, message)
+                        .catch(err => console.error("Send error: ", err));
+                    messageInput.value = '';
+                }
+            });
+
+            // Handle received messages
+            connection.on("ReciveMessage", function (userName, message) {
+                var messageContainer = document.createElement("div");
+                messageContainer.classList.add("message", "sent");
+
+                var messageBubble = document.createElement("div");
+                messageBubble.classList.add("message-bubble");
+                messageBubble.textContent = message;
+
+                var messageSender = document.createElement("div");
+                messageSender.classList.add("message-sender");
+                messageSender.textContent = userName;
+
+                messageContainer.appendChild(messageSender);
+                messageContainer.appendChild(messageBubble);
+                document.getElementById("conversation").appendChild(messageContainer);
+
+                // Scroll to the bottom of the chat
+                document.getElementById("conversation").scrollTop = document.getElementById("conversation").scrollHeight;
+            });
+        });
+    </script>
+</body>
+</html>

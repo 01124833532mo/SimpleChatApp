@@ -1,3 +1,7 @@
+using ChatDemo.Hubs;
+using Microsoft.EntityFrameworkCore;
+using SignalRProject.Context;
+
 namespace SignalRProject
 {
     public class Program
@@ -8,6 +12,19 @@ namespace SignalRProject
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+            builder.Services.AddSignalR();
+
+            builder.Services.AddDbContext<ChatDbContext>(O =>
+                O.UseSqlServer(builder.Configuration.GetConnectionString("ChatConnection")
+            ));
+
+            builder.Services.AddCors(o =>
+            {
+                o.AddPolicy("default", p =>
+                {
+                    p.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin();
+                });
+            });
 
             var app = builder.Build();
 
@@ -19,12 +36,17 @@ namespace SignalRProject
                 app.UseHsts();
             }
 
+            app.MapHub<ChatHub>("/Chathub");
+
+
+
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();
 
             app.UseAuthorization();
+            app.UseCors("default");
 
             app.MapControllerRoute(
                 name: "default",
